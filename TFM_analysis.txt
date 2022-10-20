@@ -1,0 +1,185 @@
+print("start=========================================");
+dir1 = getDirectory("Choose Source Directory");
+
+imgList = getFileList(dir1);
+
+if (imgList.length % 2 == 0){
+	print("correct number of files");
+} else {
+	exit("Terminated: Source directory must contain an even number of files");
+}
+
+dir2 = getDirectory("Choose Image Destination Directory");
+
+dir3 = getDirectory("Choose Text File Destination Directory");
+
+	p = "0.1606";
+	po = "0.45";
+	y = "15000";
+	r = "0.000000001";
+	
+	noise = ".2";
+	thres = "5";
+	
+	open(dir1+imgList[0]);
+	fpiv = calcpiv(getWidth(),getHeight());
+	close();
+
+	print(fpiv);
+	// now do the math to set any options for the interogation window... (between 1/4 and 1/10 for first, then cut in half) 
+
+	arr1 = newArray(fpiv,(fpiv*2),(fpiv/2)); // this can't be a stack number as it might depend on image; however, i will make the assumption that all images in a folder are consistent
+	arr2 = newArray((fpiv/2),fpiv,(fpiv/4), "0");
+	arr3 = newArray((fpiv/4),(fpiv/2),(fpiv/8), "0");
+	
+	arr4 = newArray(fpiv*2, fpiv);
+	arr5 = newArray(fpiv,(fpiv/2));
+	arr6 = newArray((fpiv/2), (fpiv/4));
+
+	Dialog.create("Analysis Setup");
+	Dialog.addMessage("PIV Parameters",16);
+	Dialog.addChoice("PIV1: ", arr1);
+	Dialog.addChoice("Search Window Size: ", arr4);
+	Dialog.addMessage(" ");
+	Dialog.addChoice("PIV2: ", arr2);
+	Dialog.addChoice("Search Window Size: ", arr5);
+	Dialog.addMessage("");
+	Dialog.addChoice("PIV3: ", arr3);
+	Dialog.addChoice("Search Window Size: ", arr6);
+	Dialog.addMessage("");
+	Dialog.addNumber("Noise: ", noise);
+	Dialog.addNumber("Threshold: ",thres);
+	Dialog.addMessage("__________________________");
+	Dialog.addMessage("FTTC Parameters",16);
+	Dialog.addNumber("Pixels: ",p,5,5,"");
+	Dialog.addNumber("Poisson's Ratio: ", po);
+	Dialog.addNumber("Young's Modulus", y);
+	Dialog.addNumber("Regularization Factor", r,10,11,"");
+	Dialog.show();
+
+	p1 = Dialog.getChoice();
+	sw1 = Dialog.getChoice();
+	p2 = Dialog.getChoice();
+	sw2 = Dialog.getChoice();
+	p3 = Dialog.getChoice();
+	sw3 = Dialog.getChoice();
+	noise = Dialog.getNumber();
+	thres = Dialog.getNumber();
+	p = Dialog.getNumber();
+	po = Dialog.getNumber();
+	y = Dialog.getNumber();
+	r = Dialog.getNumber();
+
+setBatchMode(true);
+
+for (i=0; i<imgList.length; i=i+2) {
+	
+	open(dir1+imgList[i]);
+	img1Title = substring(getTitle,0,lengthOf(getTitle)-4); //57
+	convert();
+	open(dir1+imgList[i+1]);
+	convert();
+	run("Images to Stack", "name=&img1Title");
+	align();
+	
+	file_loc = dir3+"PIV_"+img1Title+".txt";
+
+	run("iterative PIV(Basic)...", "piv1=&p1 sw1=&sw1 piv2=&p2 sw2=&sw2 piv3=&p3 sw3=&sw3 what=[Accept this PIV and output] noise=&noise threshold=&thres c1=3 c2=1 save=&file_loc");
+	FTTC_path = dir3+"PIV_"+img1Title+".txt";
+	run("FTTC ", "pixel=&p poisson=&po young's=&y regularization=&r plot plot=1000 plot=1000 select=&FTTC_path");
+
+	saveAs("Jpeg",dir2+img1Title+"_Traction Magnitude_B&W");
+	close();
+	saveAs("Jpeg", dir2+img1Title+"_TFM Scale Bar");
+	close();
+	saveAs("Jpeg",dir2+img1Title+"_Traction Magnitude_Forces");
+	close();
+	saveAs("Jpeg",dir2+img1Title+"_PIV Scale Bar");
+	close();
+	//saveAs("Jpeg",dir2+img1Title+"_PIV3");
+	//close();
+	
+	if ((p2 != 0) & (p3 == 0))  {
+		saveAs("Jpeg", dir2+img1Title+"_PIV2");
+		close();
+		saveAs("Jpeg", dir2+img1Title+"_PIV1");
+		close();
+	}	
+	
+	if (((p2 ==0) & (p3 == 0)) |  ((p2 == 0) & (p3 != 0))) {
+		saveAs("Jpeg", dir2+img1Title+"_PIV1");
+		close();
+	} 
+
+	if ((p2 !=0) & (p3 != 0)){
+		saveAs("Jpeg", dir2+img1Title+"_PIV3");
+		close();
+		saveAs("Jpeg", dir2+img1Title+"_PIV2");
+		close();
+		saveAs("Jpeg", dir2+img1Title+"_PIV1");
+		close();
+
+	}
+
+	close("*");
+		
+}
+
+setBatchMode(false); 
+
+
+/* 
+Below are all functions used in the main loop of the program
+*/
+
+// converts images to 16-bit and crops them
+
+function convert(){                     
+	run("16-bit");
+	print("processed 16-bit images...");
+	if(getWidth>getHeight) {
+		edge = getHeight;
+		makeRectangle(0,0,edge,edge);
+		run("Crop");
+	} else  {
+		edge = getWidth;
+		makeRectangle(0,0,edge,edge);
+		run("Crop");
+		}
+}
+
+// aligns slices in the stack **THIS MIGHT NEED TO BE UPDATED BC HARD TO ALLIGEN WHEN ALSO TRACKING MOVEMENT OF PARTICLES**
+function align(){
+	makeRectangle(0, 0, getWidth, getHeight);
+	run("Align slices in stack...", "method=5 windowsizex=100 windowsizey=192 x0=496 y0=100 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
+
+	//dim1 = getWidth-getWidth/2;
+	//dim2 = getHeight-getHeight/2;
+
+	//makeRectangle(10, 10, dim1, dim2);
+	//run("Align slices in stack...", "method=5 windowsizex=100 windowsizey=192 x0=496 y0=100 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
+
+}
+
+function calcpiv(w,h){
+	if (w>h) {
+		val = h;
+	} else {
+		val =w;
+	}
+
+	x = 0;
+
+	while ((val/4) > Math.pow(2,x)){
+		x = x+1;
+	}
+	if ((val/4) == Math.pow(2,x)) {
+		return Math.pow(2,x);
+	} else {
+		return Math.pow(2,(x-1));
+	}
+}
+
+print("**************completed**************");
+
+// things to do, make advanced/normal mode, protocol, comment, make a couple others and finalize, figure out units for values.... 
