@@ -1,4 +1,7 @@
 print("start=========================================");
+
+print("testing to see if it updates from file in directory");
+
 dir1 = getDirectory("Choose Source Directory");
 
 imgList = getFileList(dir1);
@@ -11,7 +14,35 @@ if (imgList.length % 2 == 0){
 
 dir2 = getDirectory("Choose Image Destination Directory");
 
+if (dir2 == dir1){
+	Dialog.create("Warning");
+	Dialog.addMessage("The image destination directory is the same as image source directy");
+	arr0 = newArray("yes, continue", "no, halt the program");
+	Dialog.addChoice("Would you still like to continue?", arr0);
+	Dialog.show();
+	a = Dialog.getChoice();
+
+	if (a == "no, halt the program"){
+		print("program halted");
+		exit();
+	}
+}
+
 dir3 = getDirectory("Choose Text File Destination Directory");
+
+if (dir3 == dir1){
+	Dialog.create("Warning");
+	Dialog.addMessage("The text file destination directory is the same as image source directy);
+	arr0 = newArray("yes, continue", "no, halt the program");
+	Dialog.addChoice("Would you like to continue?", arr0);
+	Dialog.show();
+	a = Dialog.getChoice();
+
+	if (a == "no, halt the program"){
+		print("program halted");
+		exit();
+	}
+}
 
 	p = "0.1606";
 	po = "0.45";
@@ -38,20 +69,23 @@ dir3 = getDirectory("Choose Text File Destination Directory");
 
 	Dialog.create("Analysis Setup");
 	Dialog.addMessage("PIV Parameters",16);
-	Dialog.addChoice("PIV1: ", arr1);
+	Dialog.addMessage("PIV 1");
+	Dialog.addChoice("1st Interrogation Window:  ", arr1);
 	Dialog.addChoice("Search Window Size: ", arr4);
 	Dialog.addMessage(" ");
-	Dialog.addChoice("PIV2: ", arr2);
+	Dialog.addMessage("PIV 2");
+	Dialog.addChoice("2st Interrogation Window: ", arr2);
 	Dialog.addChoice("Search Window Size: ", arr5);
 	Dialog.addMessage("");
-	Dialog.addChoice("PIV3: ", arr3);
+	Dialog.addMessage("PIV 3");
+	Dialog.addChoice("3rd Interrogation Window: ", arr3);
 	Dialog.addChoice("Search Window Size: ", arr6);
 	Dialog.addMessage("");
 	Dialog.addNumber("Noise: ", noise);
 	Dialog.addNumber("Threshold: ",thres);
 	Dialog.addMessage("__________________________");
 	Dialog.addMessage("FTTC Parameters",16);
-	Dialog.addNumber("Pixels: ",p,5,5,"");
+	Dialog.addNumber("Pixel size (" + fromCharCode(181) + "m)",p,5,5,"");
 	Dialog.addNumber("Poisson's Ratio: ", po);
 	Dialog.addNumber("Young's Modulus", y);
 	Dialog.addNumber("Regularization Factor", r,10,11,"");
