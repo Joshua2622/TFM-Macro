@@ -1,19 +1,22 @@
-print("start=========================================");
+print("Program starting...");
 
-print("testing to see if it updates from file in directory");
-
+// Image source directory
 dir1 = getDirectory("Choose Source Directory");
 
+// Retrieves all images in source directory and puts them within a list
 imgList = getFileList(dir1);
 
+// Checks that there are an even number of files, ensuring there all images are paired, within the source directory, otherwise the program halts
 if (imgList.length % 2 == 0){
 	print("correct number of files");
 } else {
 	exit("Terminated: Source directory must contain an even number of files");
 }
 
+// Output image directory
 dir2 = getDirectory("Choose Image Destination Directory");
 
+// Checks if the user selects the same directory as the image source directory and output image directory, if so, allows the user to halt or continue the program
 if (dir2 == dir1){
 	Dialog.create("Warning");
 	Dialog.addMessage("The image destination directory is the same as image source directy");
@@ -28,8 +31,10 @@ if (dir2 == dir1){
 	}
 }
 
+// Output text file directory
 dir3 = getDirectory("Choose Text File Destination Directory");
 
+// Checks if the user selects the same directory as the image source directory and output text file directory, if so, allows the user to halt or continue the program
 if (dir3 == dir1){
 	Dialog.create("Warning");
 	Dialog.addMessage("The text file destination directory is the same as image source directy);
@@ -44,84 +49,112 @@ if (dir3 == dir1){
 	}
 }
 
-	p = "0.1606";
-	po = "0.45";
-	y = "15000";
-	r = "0.000000001";
+// Setting initial values for the parameters
+p = "0.1606";
+po = "0.45";
+y = "15000";
+r = "0.000000001";
 	
-	noise = ".2";
-	thres = "5";
+noise = ".2";
+thres = "5";
+
+// Opens the first image and runs a calculation to determine the interrogation window size
+open(dir1+imgList[0]);
+fpiv = calcpiv(getWidth(),getHeight());
+close();
+
+//Takes the calculated interrogation window size from above and puts it into arrays for selection during the analysis setup
+arr1 = newArray(fpiv,(fpiv*2),(fpiv/2)); 
+arr2 = newArray((fpiv/2),fpiv,(fpiv/4), "0");
+arr3 = newArray((fpiv/4),(fpiv/2),(fpiv/8), "0");
 	
-	open(dir1+imgList[0]);
-	fpiv = calcpiv(getWidth(),getHeight());
-	close();
+arr4 = newArray(fpiv*2, fpiv);
+arr5 = newArray(fpiv,(fpiv/2));
+arr6 = newArray((fpiv/2), (fpiv/4));
 
-	print(fpiv);
-	// now do the math to set any options for the interogation window... (between 1/4 and 1/10 for first, then cut in half) 
+// Creates and sets up dialog box for the analysis setup
+Dialog.create("Analysis Setup");
+Dialog.addMessage("PIV Parameters",16);
+Dialog.addMessage("PIV 1");
+Dialog.addChoice("1st Interrogation Window:  ", arr1);
+Dialog.addChoice("Search Window Size: ", arr4);
+Dialog.addMessage(" ");
+Dialog.addMessage("PIV 2");
+Dialog.addChoice("2st Interrogation Window: ", arr2);
+Dialog.addChoice("Search Window Size: ", arr5);
+Dialog.addMessage("");
+Dialog.addMessage("PIV 3");
+Dialog.addChoice("3rd Interrogation Window: ", arr3);
+Dialog.addChoice("Search Window Size: ", arr6);
+Dialog.addMessage("");
+Dialog.addNumber("Noise: ", noise);
+Dialog.addNumber("Threshold: ",thres);
+Dialog.addMessage("__________________________");
+Dialog.addMessage("FTTC Parameters",16);
+Dialog.addNumber("Pixel size (" + fromCharCode(181) + "m)",p,5,5,"");
+Dialog.addNumber("Poisson's Ratio: ", po);
+Dialog.addNumber("Young's Modulus", y);
+Dialog.addNumber("Regularization Factor", r,10,11,"");
+Dialog.show();
 
-	arr1 = newArray(fpiv,(fpiv*2),(fpiv/2)); // this can't be a stack number as it might depend on image; however, i will make the assumption that all images in a folder are consistent
-	arr2 = newArray((fpiv/2),fpiv,(fpiv/4), "0");
-	arr3 = newArray((fpiv/4),(fpiv/2),(fpiv/8), "0");
-	
-	arr4 = newArray(fpiv*2, fpiv);
-	arr5 = newArray(fpiv,(fpiv/2));
-	arr6 = newArray((fpiv/2), (fpiv/4));
+// Retrieves the user input from the dialog box and saves them to new variables
+p1 = Dialog.getChoice();
+sw1 = Dialog.getChoice();
+p2 = Dialog.getChoice();
+sw2 = Dialog.getChoice();
+p3 = Dialog.getChoice();
+sw3 = Dialog.getChoice();
+noise = Dialog.getNumber();
+thres = Dialog.getNumber();
+p = Dialog.getNumber();
+po = Dialog.getNumber();
+y = Dialog.getNumber();
+r = Dialog.getNumber();
 
-	Dialog.create("Analysis Setup");
-	Dialog.addMessage("PIV Parameters",16);
-	Dialog.addMessage("PIV 1");
-	Dialog.addChoice("1st Interrogation Window:  ", arr1);
-	Dialog.addChoice("Search Window Size: ", arr4);
-	Dialog.addMessage(" ");
-	Dialog.addMessage("PIV 2");
-	Dialog.addChoice("2st Interrogation Window: ", arr2);
-	Dialog.addChoice("Search Window Size: ", arr5);
-	Dialog.addMessage("");
-	Dialog.addMessage("PIV 3");
-	Dialog.addChoice("3rd Interrogation Window: ", arr3);
-	Dialog.addChoice("Search Window Size: ", arr6);
-	Dialog.addMessage("");
-	Dialog.addNumber("Noise: ", noise);
-	Dialog.addNumber("Threshold: ",thres);
-	Dialog.addMessage("__________________________");
-	Dialog.addMessage("FTTC Parameters",16);
-	Dialog.addNumber("Pixel size (" + fromCharCode(181) + "m)",p,5,5,"");
-	Dialog.addNumber("Poisson's Ratio: ", po);
-	Dialog.addNumber("Young's Modulus", y);
-	Dialog.addNumber("Regularization Factor", r,10,11,"");
-	Dialog.show();
-
-	p1 = Dialog.getChoice();
-	sw1 = Dialog.getChoice();
-	p2 = Dialog.getChoice();
-	sw2 = Dialog.getChoice();
-	p3 = Dialog.getChoice();
-	sw3 = Dialog.getChoice();
-	noise = Dialog.getNumber();
-	thres = Dialog.getNumber();
-	p = Dialog.getNumber();
-	po = Dialog.getNumber();
-	y = Dialog.getNumber();
-	r = Dialog.getNumber();
-
+// Enables ImageJ's batchmode
 setBatchMode(true);
 
+// Loop that runs through all the images in the image source directory
 for (i=0; i<imgList.length; i=i+2) {
 	
+	// Opens first file and cuts the name to exclude the file extension 
 	open(dir1+imgList[i]);
-	img1Title = substring(getTitle,0,lengthOf(getTitle)-4); //57
+	img1Title = substring(getTitle,0,lengthOf(getTitle)-4); 
+	
+	// Makes the image square and converts to 16-bit
 	convert();
+	
+	// Opens second and converts the image
 	open(dir1+imgList[i+1]);
 	convert();
-	run("Images to Stack", "name=&img1Title");
-	align();
 	
+	// Turns the images into a stack, which is required for the PIV calculations
+	run("Images to Stack", "name=&img1Title");
+	
+	// Reverses the images so they are in the correct order 
+	run("Reverse");
+
+	//run("Align slices in stack...", "method=5 windowsizex=300 windowsizey=300 x0=5 y0=5 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
+	// FIX: windowsizex & y input is not accepting int variables, only int
+	// NOTE: If alligning slices where displacement is tracked, there are potential conflicts that could lead to unwanted errors 
+	
+	// Sets the file name and location for the PIV calculations
 	file_loc = dir3+"PIV_"+img1Title+".txt";
+	
+	print("Image analysis set up complete...");
 
+	// Computes particle image velocimetry on a pair of images
 	run("iterative PIV(Basic)...", "piv1=&p1 sw1=&sw1 piv2=&p2 sw2=&sw2 piv3=&p3 sw3=&sw3 what=[Accept this PIV and output] noise=&noise threshold=&thres c1=3 c2=1 save=&file_loc");
-	FTTC_path = dir3+"PIV_"+img1Title+".txt";
-	run("FTTC ", "pixel=&p poisson=&po young's=&y regularization=&r plot plot=1000 plot=1000 select=&FTTC_path");
+	print("PIV calculations "+(i/2+1)+" completed...");
 
+	// Sets the file name and location for the FTTC calculations
+	FTTC_path = dir3+"PIV_"+img1Title+".txt";
+
+	// Computers the fourier transform traction cytometry based on the text output file from the iterative PIV calculations
+	run("FTTC ", "pixel=&p poisson=&po young's=&y regularization=&r plot plot=1000 plot=1000 select=&FTTC_path");
+	print("FTTC calculations "+(i/2+1) + " completed...");
+
+	// Names, saves, and closes all of the outputed files
 	saveAs("Jpeg",dir2+img1Title+"_Traction Magnitude_B&W");
 	close();
 	saveAs("Jpeg", dir2+img1Title+"_TFM Scale Bar");
@@ -130,9 +163,8 @@ for (i=0; i<imgList.length; i=i+2) {
 	close();
 	saveAs("Jpeg",dir2+img1Title+"_PIV Scale Bar");
 	close();
-	//saveAs("Jpeg",dir2+img1Title+"_PIV3");
-	//close();
 	
+	// Determines how many iterations of the PIV were ran to know how many images there are to save
 	if ((p2 != 0) & (p3 == 0))  {
 		saveAs("Jpeg", dir2+img1Title+"_PIV2");
 		close();
@@ -140,11 +172,13 @@ for (i=0; i<imgList.length; i=i+2) {
 		close();
 	}	
 	
+	// Determines how many iterations of the PIV were ran to know how many images there are to save
 	if (((p2 ==0) & (p3 == 0)) |  ((p2 == 0) & (p3 != 0))) {
 		saveAs("Jpeg", dir2+img1Title+"_PIV1");
 		close();
 	} 
 
+	// Determines how many iterations of the PIV were ran to know how many images there are to save
 	if ((p2 !=0) & (p3 != 0)){
 		saveAs("Jpeg", dir2+img1Title+"_PIV3");
 		close();
@@ -152,11 +186,8 @@ for (i=0; i<imgList.length; i=i+2) {
 		close();
 		saveAs("Jpeg", dir2+img1Title+"_PIV1");
 		close();
-
 	}
-
-	close("*");
-		
+	close("*");	
 }
 
 setBatchMode(false); 
@@ -166,11 +197,9 @@ setBatchMode(false);
 Below are all functions used in the main loop of the program
 */
 
-// converts images to 16-bit and crops them
-
+// Converts images to 16-bit and crops them
 function convert(){                     
 	run("16-bit");
-	print("processed 16-bit images...");
 	if(getWidth>getHeight) {
 		edge = getHeight;
 		makeRectangle(0,0,edge,edge);
@@ -182,26 +211,13 @@ function convert(){
 		}
 }
 
-// aligns slices in the stack **THIS MIGHT NEED TO BE UPDATED BC HARD TO ALLIGEN WHEN ALSO TRACKING MOVEMENT OF PARTICLES**
-function align(){
-	makeRectangle(0, 0, getWidth, getHeight);
-	run("Align slices in stack...", "method=5 windowsizex=100 windowsizey=192 x0=496 y0=100 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
-
-	//dim1 = getWidth-getWidth/2;
-	//dim2 = getHeight-getHeight/2;
-
-	//makeRectangle(10, 10, dim1, dim2);
-	//run("Align slices in stack...", "method=5 windowsizex=100 windowsizey=192 x0=496 y0=100 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
-
-}
-
+// Calculates the interrogation window based on image size
 function calcpiv(w,h){
 	if (w>h) {
 		val = h;
 	} else {
 		val =w;
 	}
-
 	x = 0;
 
 	while ((val/4) > Math.pow(2,x)){
@@ -214,6 +230,6 @@ function calcpiv(w,h){
 	}
 }
 
-print("**************completed**************");
+print("Program Completed");
 
-// things to do, make advanced/normal mode, protocol, comment, make a couple others and finalize, figure out units for values.... 
+
