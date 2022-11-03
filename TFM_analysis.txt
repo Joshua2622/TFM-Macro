@@ -1,4 +1,21 @@
-print("Program starting...");
+Dialog.create("Analysis Mode");
+	Dialog.addMessage("How would you like to continue?")
+	arr0 = newArray("Batch Mode", "Single Image Pair Mode");
+	Dialog.addChoice("Mode: ", arr0);
+	Dialog.show();
+	a = Dialog.getChoice();
+
+	if (a == "Batch Mode"){
+		Batch();
+	} else {
+		Single();
+	}
+
+function Batch () {
+
+macro "Batch Analysis" {
+
+print("Program 1 starting...");
 
 // Image source directory
 dir1 = getDirectory("Choose Source Directory");
@@ -145,21 +162,21 @@ for (i=0; i<imgList.length; i=i+2) {
 
 	// Computes particle image velocimetry on a pair of images
 	run("iterative PIV(Basic)...", "piv1=&p1 sw1=&sw1 piv2=&p2 sw2=&sw2 piv3=&p3 sw3=&sw3 what=[Accept this PIV and output] noise=&noise threshold=&thres c1=3 c2=1 save=&file_loc");
-	print("PIV calculations "+(i/2+1)+" completed...");
+	print("PIV calculation "+(i/2+1)+" completed...");
 
 	// Sets the file name and location for the FTTC calculations
 	FTTC_path = dir3+"PIV_"+img1Title+".txt";
 
 	// Computers the fourier transform traction cytometry based on the text output file from the iterative PIV calculations
 	run("FTTC ", "pixel=&p poisson=&po young's=&y regularization=&r plot plot=1000 plot=1000 select=&FTTC_path");
-	print("FTTC calculations "+(i/2+1) + " completed...");
+	print("FTTC calculation "+(i/2+1) + " completed...");
 
 	// Names, saves, and closes all of the outputed files
 	saveAs("Jpeg",dir2+img1Title+"_Traction Magnitude_B&W");
 	close();
 	saveAs("Jpeg", dir2+img1Title+"_TFM Scale Bar");
 	close();
-	saveAs("Jpeg",dir2+img1Title+"_Traction Magnitude_Forces");
+	saveAs("Jpeg",dir2+img1Title+"_Traction Magnitude Forces");
 	close();
 	saveAs("Jpeg",dir2+img1Title+"_PIV Scale Bar");
 	close();
@@ -230,6 +247,197 @@ function calcpiv(w,h){
 	}
 }
 
-print("Program Completed");
+print("<> <> <> <> <> Program Completed <> <> <> <> <>");
+}
+}
+
+/**
+
+Function for analyzing a single image pair below
+
+**/
+
+function Single(){
+
+print("Program 2 starting...");
+
+file1 = File.openDialog("Select first image");
+open(file1);
+
+fpiv = calcpiv(getWidth(),getHeight());
+
+dir = getDirectory("image");
+file2 = File.openDialog("Select second image");
+open(file2);
+
+list = getList("image.titles");
+
+if (list.length>2) {
+	exit("Too many images");
+}
+
+// Setting initial values for the parameters
+
+p = "0.1606";
+po = "0.45";
+y = "15000";
+r = "0.000000001";
+p1 = "128";
+p2 = "64";
+p3 = "32";
+noise = ".2";
+thres = "5";
+s_name = substring(getTitle,0,lengthOf(getTitle)-4);
+print(s_name);
+
+//Takes the calculated interrogation window size from above and puts it into arrays for selection during the analysis setup
+arr1 = newArray(fpiv,(fpiv*2),(fpiv/2)); 
+arr2 = newArray((fpiv/2),fpiv,(fpiv/4), "0");
+arr3 = newArray((fpiv/4),(fpiv/2),(fpiv/8), "0");
+	
+arr4 = newArray(fpiv*2, fpiv);
+arr5 = newArray(fpiv,(fpiv/2));
+arr6 = newArray((fpiv/2), (fpiv/4));
+
+// Creates and sets up dialog box for the analysis setup
+Dialog.create("Analysis Setup");
+Dialog.addMessage("PIV Parameters",16);
+Dialog.addMessage("PIV 1");
+Dialog.addChoice("1st Interrogation Window:  ", arr1);
+Dialog.addChoice("Search Window Size: ", arr4);
+Dialog.addMessage(" ");
+Dialog.addMessage("PIV 2");
+Dialog.addChoice("2st Interrogation Window: ", arr2);
+Dialog.addChoice("Search Window Size: ", arr5);
+Dialog.addMessage("");
+Dialog.addMessage("PIV 3");
+Dialog.addChoice("3rd Interrogation Window: ", arr3);
+Dialog.addChoice("Search Window Size: ", arr6);
+Dialog.addMessage("");
+Dialog.addNumber("Noise: ", noise);
+Dialog.addNumber("Threshold: ",thres);
+Dialog.addMessage("__________________________");
+Dialog.addMessage("FTTC Parameters",16);
+Dialog.addNumber("Pixel size (" + fromCharCode(181) + "m)",p,5,5,"");
+Dialog.addNumber("Poisson's Ratio: ", po);
+Dialog.addNumber("Young's Modulus", y);
+Dialog.addNumber("Regularization Factor", r,10,11,"");
+Dialog.show();
+
+// Retrieves the user input from the dialog box and saves them to new variables
+p1 = Dialog.getChoice();
+sw1 = Dialog.getChoice();
+p2 = Dialog.getChoice();
+sw2 = Dialog.getChoice();
+p3 = Dialog.getChoice();
+sw3 = Dialog.getChoice();
+noise = Dialog.getNumber();
+thres = Dialog.getNumber();
+p = Dialog.getNumber();
+po = Dialog.getNumber();
+y = Dialog.getNumber();
+r = Dialog.getNumber();
+
+list1 = getList("image.titles");
+
+if (list1.length>2) {
+	exit("Too many images");
+}
+
+for(i=0; i<list1.length; i++){
+
+	selectWindow(list1[i]);
+	run("16-bit");	
+
+	if (getWidth==getHeight) {
+	print(" ");
+	} else { 
+		if(getWidth>getHeight) {
+			edge = getHeight;
+			makeRectangle(0,0,edge,edge);
+			run("Crop");
+		} else  {
+			edge = getWidth;
+			makeRectangle(0,0,edge,edge);
+			run("Crop");
+	}
+}
+}
+ 
+run("Images to Stack", "name=&s_name");
+
+run("Reverse");
+
+name = getTitle;
+
+file_loc = dir+"PIV_"+name+".txt";
+
+//run("Align slices in stack...", "method=5 windowsizex=100 windowsizey=192 x0=496 y0=100 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
+
+run("iterative PIV(Basic)...", "piv1=&p1 sw1=&sw1 piv2=&p2 sw2=&sw2 piv3=&p3 sw3=&sw3 what=[Accept this PIV and output] noise=&noise threshold=&thres c1=3 c2=1 save=&file_loc");
+//run("iterative PIV(Cross-correlation)...", "piv1=&p1 piv2=&p2 piv3=&p3 what=[Accept this PIV and output] noise=&noise threshold=&thres c1=3 c2=1 save=&file_loc");
+FTTC_path = dir+"PIV_"+name+".txt";
+
+run("FTTC ", "pixel=&p poisson=&po young's=&y regularization=&r plot plot=1000 plot=1000 select=&FTTC_path");
+
+list2 = getList("image.titles");
+
+for(i = 0; i<list2.length; i++){
+	if (i == 0) {
+		selectWindow(list2[i]);
+		rename("Image Stack");
+	}
+	if (i==1) {	
+		selectWindow(list2[i]);
+		rename("PIV1");
+	}
+	if (i == 2) {
+		selectWindow(list2[i]);
+		rename("PIV2");
+	}
+	if (i==3) {	
+		selectWindow(list2[i]);
+		rename("PIV3");
+	}
+	if (i == 4) {
+		selectWindow(list2[i]);
+		rename("Scale Bar 1");
+	}
+	if (i==5) {	
+		selectWindow(list2[i]);
+		rename("Traction Magnitude Force");
+	}
+	if (i==6) {	
+		selectWindow(list2[i]);
+		rename("Scale Bar 2");
+	}
+	if (i==7) {	
+		selectWindow(list2[i]);
+		rename("Traction Magnitude Force_B&W");
+	}
+}
 
 
+// Calculates the interrogation window based on image size
+function calcpiv(w,h){
+	if (w>h) {
+		val = h;
+	} else {
+		val =w;
+	}
+	x = 0;
+
+	while ((val/4) > Math.pow(2,x)){
+		x = x+1;
+	}
+	if ((val/4) == Math.pow(2,x)) {
+		return Math.pow(2,x);
+	} else {
+		return Math.pow(2,(x-1));
+	}
+}
+
+print("<> <> <> <> <> Program Completed <> <> <> <> <>");
+
+
+}
