@@ -89,6 +89,8 @@ arr4 = newArray(fpiv*2, fpiv);
 arr5 = newArray(fpiv,(fpiv/2));
 arr6 = newArray((fpiv/2), (fpiv/4));
 
+arr7 = newArray("No alignment", "Full image alignment", "Edge alignment");
+
 // Creates and sets up dialog box for the analysis setup
 Dialog.create("Analysis Setup");
 Dialog.addMessage("PIV Parameters",16);
@@ -112,6 +114,8 @@ Dialog.addNumber("Pixel size (" + fromCharCode(181) + "m)",p,5,5,"");
 Dialog.addNumber("Poisson's Ratio: ", po);
 Dialog.addNumber("Young's Modulus", y);
 Dialog.addNumber("Regularization Factor", r,10,11,"");
+Dialog.addMessage("__________________________");
+Dialog.addChoice("Alignment option: ", arr7);
 Dialog.show();
 
 // Retrieves the user input from the dialog box and saves them to new variables
@@ -127,6 +131,7 @@ p = Dialog.getNumber();
 po = Dialog.getNumber();
 y = Dialog.getNumber();
 r = Dialog.getNumber();
+aln = Dialog.getChoice();
 
 // Enables ImageJ's batchmode
 setBatchMode(true);
@@ -150,6 +155,18 @@ for (i=0; i<imgList.length; i=i+2) {
 	
 	// Reverses the images so they are in the correct order 
 	run("Reverse");
+
+	a = getWidth();
+
+	if (aln == "No alignment") {
+		print(aln);
+	} 
+	if (aln == "Full image alignment"){
+		run("Align slices in stack...", "method=5 windowsizex="+a+" windowsizey="+a+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
+	}
+	if (aln == "Edge alignment"){
+		run("Align slices in stack...", "method=5 windowsizex="+floor(a/5)+" windowsizey="+a+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
+	}
 
 	//run("Align slices in stack...", "method=5 windowsizex=300 windowsizey=300 x0=5 y0=5 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
 	// FIX: windowsizex & y input is not accepting int variables, only int
@@ -209,44 +226,6 @@ for (i=0; i<imgList.length; i=i+2) {
 
 setBatchMode(false); 
 
-
-/* 
-Below are all functions used in the main loop of the program
-*/
-
-// Converts images to 16-bit and crops them
-function convert(){                     
-	run("16-bit");
-	if(getWidth>getHeight) {
-		edge = getHeight;
-		makeRectangle(0,0,edge,edge);
-		run("Crop");
-	} else  {
-		edge = getWidth;
-		makeRectangle(0,0,edge,edge);
-		run("Crop");
-		}
-}
-
-// Calculates the interrogation window based on image size
-function calcpiv(w,h){
-	if (w>h) {
-		val = h;
-	} else {
-		val =w;
-	}
-	x = 0;
-
-	while ((val/4) > Math.pow(2,x)){
-		x = x+1;
-	}
-	if ((val/4) == Math.pow(2,x)) {
-		return Math.pow(2,x);
-	} else {
-		return Math.pow(2,(x-1));
-	}
-}
-
 print("<> <> <> <> <> Program Completed <> <> <> <> <>");
 }
 }
@@ -299,6 +278,8 @@ arr4 = newArray(fpiv*2, fpiv);
 arr5 = newArray(fpiv,(fpiv/2));
 arr6 = newArray((fpiv/2), (fpiv/4));
 
+arr7 = newArray("No alignment", "Full image alignment", "Edge image alignment");
+
 // Creates and sets up dialog box for the analysis setup
 Dialog.create("Analysis Setup");
 Dialog.addMessage("PIV Parameters",16);
@@ -322,6 +303,8 @@ Dialog.addNumber("Pixel size (" + fromCharCode(181) + "m)",p,5,5,"");
 Dialog.addNumber("Poisson's Ratio: ", po);
 Dialog.addNumber("Young's Modulus", y);
 Dialog.addNumber("Regularization Factor", r,10,11,"");
+Dialog.addMessage("__________________________");
+Dialog.addChoice("Alignment option: ", arr7);
 Dialog.show();
 
 // Retrieves the user input from the dialog box and saves them to new variables
@@ -337,12 +320,14 @@ p = Dialog.getNumber();
 po = Dialog.getNumber();
 y = Dialog.getNumber();
 r = Dialog.getNumber();
+aln = Dialog.getChoice();
 
 list1 = getList("image.titles");
 
 if (list1.length>2) {
 	exit("Too many images");
 }
+
 
 for(i=0; i<list1.length; i++){
 
@@ -368,14 +353,24 @@ run("Images to Stack", "name=&s_name");
 
 run("Reverse");
 
+a = getWidth();
+
+	if (aln == "No alignment") {
+		print(aln);
+	} 
+	if (aln == "Full image alignment"){
+		run("Align slices in stack...", "method=5 windowsizex="+a+" windowsizey="+a+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
+	}
+	if (aln == "Edge alignment"){
+		run("Align slices in stack...", "method=5 windowsizex="+floor(a/5)+" windowsizey="+a+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
+	}
+	
+
 name = getTitle;
 
 file_loc = dir+"PIV_"+name+".txt";
 
-//run("Align slices in stack...", "method=5 windowsizex=100 windowsizey=192 x0=496 y0=100 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
-
 run("iterative PIV(Basic)...", "piv1=&p1 sw1=&sw1 piv2=&p2 sw2=&sw2 piv3=&p3 sw3=&sw3 what=[Accept this PIV and output] noise=&noise threshold=&thres c1=3 c2=1 save=&file_loc");
-//run("iterative PIV(Cross-correlation)...", "piv1=&p1 piv2=&p2 piv3=&p3 what=[Accept this PIV and output] noise=&noise threshold=&thres c1=3 c2=1 save=&file_loc");
 FTTC_path = dir+"PIV_"+name+".txt";
 
 run("FTTC ", "pixel=&p poisson=&po young's=&y regularization=&r plot plot=1000 plot=1000 select=&FTTC_path");
@@ -419,6 +414,31 @@ for(i = 0; i<list2.length; i++){
 
 
 // Calculates the interrogation window based on image size
+
+print("<> <> <> <> <> Program Completed <> <> <> <> <>");
+
+
+}
+
+/* 
+Below are all functions used in the main loop of the program
+*/
+
+// Converts images to 16-bit and crops them
+function convert(){                     
+	run("16-bit");
+	if(getWidth>getHeight) {
+		edge = getHeight;
+		makeRectangle(0,0,edge,edge);
+		run("Crop");
+	} else  {
+		edge = getWidth;
+		makeRectangle(0,0,edge,edge);
+		run("Crop");
+		}
+}
+
+// Calculates the interrogation window based on image size
 function calcpiv(w,h){
 	if (w>h) {
 		val = h;
@@ -437,7 +457,5 @@ function calcpiv(w,h){
 	}
 }
 
-print("<> <> <> <> <> Program Completed <> <> <> <> <>");
 
 
-}
