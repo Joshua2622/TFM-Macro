@@ -1,6 +1,6 @@
 Dialog.create("Analysis Mode");
 	Dialog.addMessage("How would you like to continue?")
-	arr0 = newArray("Batch Mode", "Single Image Pair Mode");
+	arr0 = newArray("Batch Mode", "Single Pair of Images");
 	Dialog.addChoice("Mode: ", arr0);
 	Dialog.show();
 	a = Dialog.getChoice();
@@ -34,37 +34,13 @@ if (imgList.length % 2 == 0){
 dir2 = getDirectory("Choose Image Destination Directory");
 
 // Checks if the user selects the same directory as the image source directory and output image directory, if so, allows the user to halt or continue the program
-if (dir2 == dir1){
-	Dialog.create("Warning");
-	Dialog.addMessage("The image destination directory is the same as image source directy");
-	arr0 = newArray("yes, continue", "no, halt the program");
-	Dialog.addChoice("Would you still like to continue?", arr0);
-	Dialog.show();
-	a = Dialog.getChoice();
-
-	if (a == "no, halt the program"){
-		print("program halted");
-		exit();
-	}
-}
+warningCheck(dir2, dir1);
 
 // Output text file directory
 dir3 = getDirectory("Choose Text File Destination Directory");
 
 // Checks if the user selects the same directory as the image source directory and output text file directory, if so, allows the user to halt or continue the program
-if (dir3 == dir1){
-	Dialog.create("Warning");
-	Dialog.addMessage("The text file destination directory is the same as image source directy);
-	arr0 = newArray("yes, continue", "no, halt the program");
-	Dialog.addChoice("Would you like to continue?", arr0);
-	Dialog.show();
-	a = Dialog.getChoice();
-
-	if (a == "no, halt the program"){
-		print("program halted");
-		exit();
-	}
-}
+warningCheck(dir3, dir1);
 
 // Setting initial values for the parameters
 p = "0.1606";
@@ -90,6 +66,8 @@ arr5 = newArray(fpiv,(fpiv/2));
 arr6 = newArray((fpiv/2), (fpiv/4));
 
 arr7 = newArray("No alignment", "Full image alignment", "Edge alignment");
+
+//calculate the background threshold thingy, make a function for it
 
 // Creates and sets up dialog box for the analysis setup
 Dialog.create("Analysis Setup");
@@ -133,21 +111,29 @@ y = Dialog.getNumber();
 r = Dialog.getNumber();
 aln = Dialog.getChoice();
 
+bthres = calcThres(dir1, dir3, p1, p2, p3, sw1, sw2, sw3, noise, thres, p, po, y, r, aln);
+
+Dialog.create("Background Threshold");
+Dialog.addNumber("Background threshold", bthres);
+Dialog.show();
+
+bgt = Dialog.getNumber();
+
 // Enables ImageJ's batchmode
 setBatchMode(true);
 
 // Loop that runs through all the images in the image source directory
-for (i=0; i<imgList.length; i=i+2) {
+for (j=0; j<imgList.length; j=j+2) {
 	
 	// Opens first file and cuts the name to exclude the file extension 
-	open(dir1+imgList[i]);
+	open(dir1+imgList[j]);
 	img1Title = substring(getTitle,0,lengthOf(getTitle)-4); 
 	
 	// Makes the image square and converts to 16-bit
 	convert();
 	
 	// Opens second and converts the image
-	open(dir1+imgList[i+1]);
+	open(dir1+imgList[j+1]);
 	convert();
 	
 	// Turns the images into a stack, which is required for the PIV calculations
@@ -158,20 +144,8 @@ for (i=0; i<imgList.length; i=i+2) {
 
 	a = getWidth();
 
-	if (aln == "No alignment") {
-		print(aln);
-	} 
-	if (aln == "Full image alignment"){
-		run("Align slices in stack...", "method=5 windowsizex="+a+" windowsizey="+a+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
-	}
-	if (aln == "Edge alignment"){
-		run("Align slices in stack...", "method=5 windowsizex="+floor(a/5)+" windowsizey="+a+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
-	}
+	align(aln);
 
-	//run("Align slices in stack...", "method=5 windowsizex=300 windowsizey=300 x0=5 y0=5 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
-	// FIX: windowsizex & y input is not accepting int variables, only int
-	// NOTE: If alligning slices where displacement is tracked, there are potential conflicts that could lead to unwanted errors 
-	
 	// Sets the file name and location for the PIV calculations
 	file_loc = dir3+"PIV_"+img1Title+".txt";
 	
@@ -179,14 +153,14 @@ for (i=0; i<imgList.length; i=i+2) {
 
 	// Computes particle image velocimetry on a pair of images
 	run("iterative PIV(Basic)...", "piv1=&p1 sw1=&sw1 piv2=&p2 sw2=&sw2 piv3=&p3 sw3=&sw3 what=[Accept this PIV and output] noise=&noise threshold=&thres c1=3 c2=1 save=&file_loc");
-	print("PIV calculation "+(i/2+1)+" completed...");
+	print("PIV calculation "+(j/2+1)+" completed...");
 
 	// Sets the file name and location for the FTTC calculations
 	FTTC_path = dir3+"PIV_"+img1Title+".txt";
 
 	// Computers the fourier transform traction cytometry based on the text output file from the iterative PIV calculations
 	run("FTTC ", "pixel=&p poisson=&po young's=&y regularization=&r plot plot=1000 plot=1000 select=&FTTC_path");
-	print("FTTC calculation "+(i/2+1) + " completed...");
+	print("FTTC calculation "+(j/2+1) + " completed...");
 
 	// Names, saves, and closes all of the outputed files
 	saveAs("Jpeg",dir2+img1Title+"_Traction Magnitude_B&W");
@@ -222,31 +196,40 @@ for (i=0; i<imgList.length; i=i+2) {
 		close();
 	}
 	close("*");	
+
+	name1 = dir3+"Traction_PIV_"+img1Title+".txt";
+	threshold(j, name1, bgt);
+
 }
 
 setBatchMode(false); 
+
 
 print("<> <> <> <> <> Program Completed <> <> <> <> <>");
 }
 }
 
 /**
-
+|\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 Function for analyzing a single image pair below
-
+//////////////////////////////////////////////////////////////////////////////////
 **/
 
 function Single(){
 
 print("Program 2 starting...");
 
-file1 = File.openDialog("Select first image");
-open(file1);
+close("*");
 
+file1 = File.openDialog("Select Fluorescent Bead Image (unstressed)");
+open(file1);
+img1Title = substring(getTitle,0,lengthOf(getTitle)-4); 
 fpiv = calcpiv(getWidth(),getHeight());
 
-dir = getDirectory("image");
-file2 = File.openDialog("Select second image");
+file2 = File.openDialog("Select Fluorescent Bead Image (stressed)");
+
+dir4 = getDirectory("Choose Textfile Destination Directory");
+
 open(file2);
 
 list = getList("image.titles");
@@ -266,6 +249,7 @@ p2 = "64";
 p3 = "32";
 noise = ".2";
 thres = "5";
+bthres = 20;
 s_name = substring(getTitle,0,lengthOf(getTitle)-4);
 print(s_name);
 
@@ -322,10 +306,21 @@ y = Dialog.getNumber();
 r = Dialog.getNumber();
 aln = Dialog.getChoice();
 
+bthres = calcThres("none", dir4, p1, p2, p3, sw1, sw2, sw3, noise, thres, p, po, y, r, aln);
+
+Dialog.create("Background Threshold");
+Dialog.addNumber("Background threshold (Pa)", bthres);
+Dialog.show();
+
+bgt = Dialog.getNumber();
+
+open(file1);
+open(file2);
+
 list1 = getList("image.titles");
 
 if (list1.length>2) {
-	exit("Too many images");
+	exit("Too many images open");
 }
 
 
@@ -355,28 +350,20 @@ run("Reverse");
 
 a = getWidth();
 
-	if (aln == "No alignment") {
-		print(aln);
-	} 
-	if (aln == "Full image alignment"){
-		run("Align slices in stack...", "method=5 windowsizex="+a+" windowsizey="+a+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
-	}
-	if (aln == "Edge alignment"){
-		run("Align slices in stack...", "method=5 windowsizex="+floor(a/5)+" windowsizey="+a+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
-	}
-	
+align(aln);
 
-name = getTitle;
+//name = getTitle;
 
-file_loc = dir+"PIV_"+name+".txt";
+file_loc = dir4+"PIV_"+img1Title+".txt";
 
 run("iterative PIV(Basic)...", "piv1=&p1 sw1=&sw1 piv2=&p2 sw2=&sw2 piv3=&p3 sw3=&sw3 what=[Accept this PIV and output] noise=&noise threshold=&thres c1=3 c2=1 save=&file_loc");
-FTTC_path = dir+"PIV_"+name+".txt";
+FTTC_path = dir4+"PIV_"+img1Title+".txt";
 
 run("FTTC ", "pixel=&p poisson=&po young's=&y regularization=&r plot plot=1000 plot=1000 select=&FTTC_path");
 
 list2 = getList("image.titles");
 
+// Renames all open images 
 for(i = 0; i<list2.length; i++){
 	if (i == 0) {
 		selectWindow(list2[i]);
@@ -412,8 +399,8 @@ for(i = 0; i<list2.length; i++){
 	}
 }
 
-
-// Calculates the interrogation window based on image size
+files = dir4+"Traction_PIV_"+img1Title+".txt";
+ threshold(0, files, bgt);
 
 print("<> <> <> <> <> Program Completed <> <> <> <> <>");
 
@@ -421,7 +408,15 @@ print("<> <> <> <> <> Program Completed <> <> <> <> <>");
 }
 
 /* 
-Below are all functions used in the main loop of the program
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+<><><><><><><><><><><><><><><><><><><><><><>
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Below are functions used in the main loop of the program
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+<><><><><><><><><><><><><><><><><><><><><><>
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 */
 
 // Converts images to 16-bit and crops them
@@ -457,5 +452,115 @@ function calcpiv(w,h){
 	}
 }
 
+// Calculates if there is some background vector magnitude that is below some value, alpha
 
+function threshold(runNum, filepath, alpha){
+	
+	filestring = File.openAsString(filepath);
+	apple = split(filestring);
+
+	assump = "Error"; 
+
+	for (i = 4; i<apple.length; i=i+5){
+		if(round(apple[i]) <= alpha) {
+			assump = "No Error";
+		} 
+	}
+
+	if (assump == "Error"){
+		Dialog.create("Error");
+		Dialog.addMessage("There was no background noise below "+alpha+ "Pa on run: "+(runNum/2)+1);
+		Dialog.show();
+	} else {
+		print("");
+	}
+
+}
+
+// Calculates a default acceptable background threshold
+
+function calcThres(dir1, dir3, p1, p2, p3, sw1, sw2, sw3, noise, thres, p, po, y, r, aln){
+	
+	if (dir1 == "none"){
+		
+	} else {
+	close("*");
+	open(dir1+imgList[0]);
+	img1Title = substring(getTitle,0,lengthOf(getTitle)-4);
+	convert();
+
+	open(dir1+imgList[1]);
+	convert();
+	} 
+
+	run("Images to Stack", "name=tempStack");
+	run("Reverse");
+	
+	a = getWidth();
+	align(aln);	
+
+	file_loc = dir3+"PIV_"+img1Title+".txt";
+	run("iterative PIV(Basic)...", "piv1=&p1 sw1=&sw1 piv2=&p2 sw2=&sw2 piv3=&p3 sw3=&sw3 what=[Accept this PIV and output] noise=&noise threshold=&thres c1=3 c2=1 save=&file_loc");
+	close("*");	
+
+	FTTC_path = dir3+"PIV_"+img1Title+".txt";
+	run("FTTC ", "pixel=&p poisson=&po young's=&y regularization=&r plot plot=1000 plot=1000 select=&FTTC_path");
+
+	close("*");
+	
+	filepath = dir3+"Traction_PIV_"+img1Title+".txt";
+	
+	filestring = File.openAsString(filepath);
+	apple = split(filestring);
+	
+	low = round(apple[4]);
+	print("intial low: ");
+
+	for (i = 4; i<apple.length; i=i+5){
+		
+		if (round(apple[4]) > round(apple[i])){
+			low = apple[i];
+		}
+	}
+	print("LOW: " + low);
+	val = round(low)*2+10;  
+	// very arbitrary 
+	
+	return val;
+}
+
+// Alignment function
+function align(type){
+
+	if (type == "No alignment") {
+		print(aln);
+	} 
+	if (type == "Full image alignment"){
+		run("Align slices in stack...", "method=5 windowsizex="+a+" windowsizey="+a+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
+	}
+	if (type == "Edge alignment"){
+		run("Align slices in stack...", "method=5 windowsizex="+floor(a/5)+" windowsizey="+a+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
+	}
+}
+
+
+// 
+function warningCheck(d1, d2){
+print("entered warning");
+if (d1 == d2){
+	
+	Dialog.create("Warning");
+	Dialog.addMessage("One of the selected directories is the same as image source directory");
+	arr0 = newArray("yes, continue", "no, halt the program");
+	Dialog.addChoice("Would you still like to continue?", arr0);
+	Dialog.show();
+	a = Dialog.getChoice();
+	if (a == "no, halt the program"){
+		print("program halted");
+		exit();
+	}
+
+}
+
+}
 
