@@ -56,33 +56,23 @@ open(dir1+imgList[0]);
 fpiv = calcpiv(getWidth(),getHeight());
 close();
 
-//Takes the calculated interrogation window size from above and puts it into arrays for selection during the analysis setup
-arr1 = newArray(fpiv,(fpiv*2),(fpiv/2)); 
-arr2 = newArray((fpiv/2),fpiv,(fpiv/4), "0");
-arr3 = newArray((fpiv/4),(fpiv/2),(fpiv/8), "0");
-	
-arr4 = newArray(fpiv*2, fpiv);
-arr5 = newArray(fpiv,(fpiv/2));
-arr6 = newArray((fpiv/2), (fpiv/4));
-
+// Array containing alignment options
 arr7 = newArray("No alignment", "Full image alignment", "Edge alignment");
-
-//calculate the background threshold thingy, make a function for it
 
 // Creates and sets up dialog box for the analysis setup
 Dialog.create("Analysis Setup");
 Dialog.addMessage("PIV Parameters",16);
 Dialog.addMessage("PIV 1");
-Dialog.addChoice("1st Interrogation Window:  ", arr1);
-Dialog.addChoice("Search Window Size: ", arr4);
+Dialog.addNumber("1st Interrogation Window:  ", fpiv);
+Dialog.addNumber("Search Window Size: ", fpiv*2);
 Dialog.addMessage(" ");
 Dialog.addMessage("PIV 2");
-Dialog.addChoice("2st Interrogation Window: ", arr2);
-Dialog.addChoice("Search Window Size: ", arr5);
+Dialog.addNumber("2st Interrogation Window: ", fpiv/2);
+Dialog.addNumber("Search Window Size: ", fpiv);
 Dialog.addMessage("");
 Dialog.addMessage("PIV 3");
-Dialog.addChoice("3rd Interrogation Window: ", arr3);
-Dialog.addChoice("Search Window Size: ", arr6);
+Dialog.addNumber("3rd Interrogation Window: ", fpiv/4);
+Dialog.addNumber("Search Window Size: ", fpiv/2);
 Dialog.addMessage("");
 Dialog.addNumber("Noise: ", noise);
 Dialog.addNumber("Threshold: ",thres);
@@ -97,12 +87,12 @@ Dialog.addChoice("Alignment option: ", arr7);
 Dialog.show();
 
 // Retrieves the user input from the dialog box and saves them to new variables
-p1 = Dialog.getChoice();
-sw1 = Dialog.getChoice();
-p2 = Dialog.getChoice();
-sw2 = Dialog.getChoice();
-p3 = Dialog.getChoice();
-sw3 = Dialog.getChoice();
+p1 = Dialog.getNumber();
+sw1 = Dialog.getNumber();
+p2 = Dialog.getNumber();
+sw2 = Dialog.getNumber();
+p3 = Dialog.getNumber();
+sw3 = Dialog.getNumber();
 noise = Dialog.getNumber();
 thres = Dialog.getNumber();
 p = Dialog.getNumber();
@@ -111,12 +101,13 @@ y = Dialog.getNumber();
 r = Dialog.getNumber();
 aln = Dialog.getChoice();
 
+// Calculating the default threshold value based on user inputs
 bthres = calcThres(dir1, dir3, p1, p2, p3, sw1, sw2, sw3, noise, thres, p, po, y, r, aln);
 
+// Dialog box for user to enter a background threshold value
 Dialog.create("Background Threshold");
 Dialog.addNumber("Background threshold", bthres);
 Dialog.show();
-
 bgt = Dialog.getNumber();
 
 // Enables ImageJ's batchmode
@@ -124,7 +115,6 @@ setBatchMode(true);
 
 // Loop that runs through all the images in the image source directory
 for (j=0; j<imgList.length; j=j+2) {
-	
 	// Opens first file and cuts the name to exclude the file extension 
 	open(dir1+imgList[j]);
 	img1Title = substring(getTitle,0,lengthOf(getTitle)-4); 
@@ -142,8 +132,7 @@ for (j=0; j<imgList.length; j=j+2) {
 	// Reverses the images so they are in the correct order 
 	run("Reverse");
 
-	a = getWidth();
-
+	// Runs the align function based on the user input
 	align(aln);
 
 	// Sets the file name and location for the PIV calculations
@@ -163,49 +152,54 @@ for (j=0; j<imgList.length; j=j+2) {
 	print("FTTC calculation "+(j/2+1) + " completed...");
 
 	// Names, saves, and closes all of the outputed files
+	imgType = "Tiff";
+
 	saveAs("Jpeg",dir2+img1Title+"_Traction Magnitude_B&W");
 	close();
-	saveAs("Jpeg", dir2+img1Title+"_TFM Scale Bar");
+	saveAs(imgType, dir2+img1Title+"_TFM Scale Bar");
 	close();
-	saveAs("Jpeg",dir2+img1Title+"_Traction Magnitude Forces");
+	saveAs(imgType, dir2+img1Title+"_Traction Magnitude Forces");
 	close();
-	saveAs("Jpeg",dir2+img1Title+"_PIV Scale Bar");
+	saveAs(imgType, dir2+img1Title+"_PIV Scale Bar");
 	close();
-	
+
 	// Determines how many iterations of the PIV were ran to know how many images there are to save
 	if ((p2 != 0) & (p3 == 0))  {
-		saveAs("Jpeg", dir2+img1Title+"_PIV2");
+		saveAs("imgType", dir2+img1Title+"_PIV2");
 		close();
-		saveAs("Jpeg", dir2+img1Title+"_PIV1");
+		saveAs("imgType", dir2+img1Title+"_PIV1");
 		close();
 	}	
-	
+
 	// Determines how many iterations of the PIV were ran to know how many images there are to save
 	if (((p2 ==0) & (p3 == 0)) |  ((p2 == 0) & (p3 != 0))) {
-		saveAs("Jpeg", dir2+img1Title+"_PIV1");
+		saveAs(imgType, dir2+img1Title+"_PIV1");
 		close();
 	} 
 
 	// Determines how many iterations of the PIV were ran to know how many images there are to save
 	if ((p2 !=0) & (p3 != 0)){
-		saveAs("Jpeg", dir2+img1Title+"_PIV3");
+		saveAs(imgType, dir2+img1Title+"_PIV3");
 		close();
-		saveAs("Jpeg", dir2+img1Title+"_PIV2");
+		saveAs(imgType, dir2+img1Title+"_PIV2");
 		close();
-		saveAs("Jpeg", dir2+img1Title+"_PIV1");
+		saveAs(imgType, dir2+img1Title+"_PIV1");
 		close();
 	}
 	close("*");	
-
+	
+	// Checks if there is a minimum value below the inputed background threshold
 	name1 = dir3+"Traction_PIV_"+img1Title+".txt";
 	threshold(j, name1, bgt);
-
+	
 }
 
 setBatchMode(false); 
 
-
-print("<> <> <> <> <> Program Completed <> <> <> <> <>");
+// Program complete message
+Dialog.create("Program Completed");
+Dialog.addMessage("                                                      ");
+Dialog.show();
 }
 }
 
@@ -219,27 +213,29 @@ function Single(){
 
 print("Program 2 starting...");
 
+// Closes all images 
 close("*");
 
+// Selects and opens first image
 file1 = File.openDialog("Select Fluorescent Bead Image (unstressed)");
 open(file1);
+
+// Saves the image title after cutting off the extension
 img1Title = substring(getTitle,0,lengthOf(getTitle)-4); 
+
+// Runs a calculation to determine the interrogation window size
 fpiv = calcpiv(getWidth(),getHeight());
 
+// Selection of the second image
 file2 = File.openDialog("Select Fluorescent Bead Image (stressed)");
 
-dir4 = getDirectory("Choose Textfile Destination Directory");
+// Text file directory
+dir4 = getDirectory("Choose Text file Destination Directory");
 
+//Opens second image
 open(file2);
 
-list = getList("image.titles");
-
-if (list.length>2) {
-	exit("Too many images");
-}
-
 // Setting initial values for the parameters
-
 p = "0.1606";
 po = "0.45";
 y = "15000";
@@ -251,33 +247,24 @@ noise = ".2";
 thres = "5";
 bthres = 20;
 s_name = substring(getTitle,0,lengthOf(getTitle)-4);
-print(s_name);
 
-//Takes the calculated interrogation window size from above and puts it into arrays for selection during the analysis setup
-arr1 = newArray(fpiv,(fpiv*2),(fpiv/2)); 
-arr2 = newArray((fpiv/2),fpiv,(fpiv/4), "0");
-arr3 = newArray((fpiv/4),(fpiv/2),(fpiv/8), "0");
-	
-arr4 = newArray(fpiv*2, fpiv);
-arr5 = newArray(fpiv,(fpiv/2));
-arr6 = newArray((fpiv/2), (fpiv/4));
-
+// Array containing alignment options
 arr7 = newArray("No alignment", "Full image alignment", "Edge image alignment");
 
 // Creates and sets up dialog box for the analysis setup
 Dialog.create("Analysis Setup");
 Dialog.addMessage("PIV Parameters",16);
 Dialog.addMessage("PIV 1");
-Dialog.addChoice("1st Interrogation Window:  ", arr1);
-Dialog.addChoice("Search Window Size: ", arr4);
+Dialog.addNumber("1st Interrogation Window:  ", fpiv);
+Dialog.addNumber("Search Window Size: ", fpiv*2);
 Dialog.addMessage(" ");
 Dialog.addMessage("PIV 2");
-Dialog.addChoice("2st Interrogation Window: ", arr2);
-Dialog.addChoice("Search Window Size: ", arr5);
+Dialog.addNumber("2st Interrogation Window: ", fpiv/2);
+Dialog.addNumber("Search Window Size: ", fpiv);
 Dialog.addMessage("");
 Dialog.addMessage("PIV 3");
-Dialog.addChoice("3rd Interrogation Window: ", arr3);
-Dialog.addChoice("Search Window Size: ", arr6);
+Dialog.addNumber("3rd Interrogation Window: ", fpiv/4);
+Dialog.addNumber("Search Window Size: ", fpiv/2);
 Dialog.addMessage("");
 Dialog.addNumber("Noise: ", noise);
 Dialog.addNumber("Threshold: ",thres);
@@ -292,12 +279,12 @@ Dialog.addChoice("Alignment option: ", arr7);
 Dialog.show();
 
 // Retrieves the user input from the dialog box and saves them to new variables
-p1 = Dialog.getChoice();
-sw1 = Dialog.getChoice();
-p2 = Dialog.getChoice();
-sw2 = Dialog.getChoice();
-p3 = Dialog.getChoice();
-sw3 = Dialog.getChoice();
+p1 = Dialog.getNumber();
+sw1 = Dialog.getNumber();
+p2 = Dialog.getNumber();
+sw2 = Dialog.getNumber();
+p3 = Dialog.getNumber();
+sw3 = Dialog.getNumber();
 noise = Dialog.getNumber();
 thres = Dialog.getNumber();
 p = Dialog.getNumber();
@@ -306,24 +293,23 @@ y = Dialog.getNumber();
 r = Dialog.getNumber();
 aln = Dialog.getChoice();
 
+// Calculating the default threshold value based on user inputs
 bthres = calcThres("none", dir4, p1, p2, p3, sw1, sw2, sw3, noise, thres, p, po, y, r, aln);
 
+// Dialog box for user to enter a background threshold value
 Dialog.create("Background Threshold");
 Dialog.addNumber("Background threshold (Pa)", bthres);
 Dialog.show();
-
 bgt = Dialog.getNumber();
 
+// Opens first two files
 open(file1);
 open(file2);
 
+// Creates a list containing both images
 list1 = getList("image.titles");
 
-if (list1.length>2) {
-	exit("Too many images open");
-}
-
-
+// For loop that converts images to 16-bit and crops them so the images are square
 for(i=0; i<list1.length; i++){
 
 	selectWindow(list1[i]);
@@ -344,26 +330,31 @@ for(i=0; i<list1.length; i++){
 }
 }
  
+// Creates a stack of the images
 run("Images to Stack", "name=&s_name");
 
+// Reverses the images so they are in the correct order for the analysis
 run("Reverse");
 
-a = getWidth();
-
+// Runs the align function based on the user input
 align(aln);
 
-//name = getTitle;
-
+// Sets the file name and location for the PIV calculations
 file_loc = dir4+"PIV_"+img1Title+".txt";
 
+// Computes particle image velocimetry on the pair of images
 run("iterative PIV(Basic)...", "piv1=&p1 sw1=&sw1 piv2=&p2 sw2=&sw2 piv3=&p3 sw3=&sw3 what=[Accept this PIV and output] noise=&noise threshold=&thres c1=3 c2=1 save=&file_loc");
+
+// Sets the file name and location for the FTTC calculations
 FTTC_path = dir4+"PIV_"+img1Title+".txt";
 
+// Computers the fourier transform traction cytometry based on the text output file from the iterative PIV calculations
 run("FTTC ", "pixel=&p poisson=&po young's=&y regularization=&r plot plot=1000 plot=1000 select=&FTTC_path");
 
+// Creates a list containg all of the outputed images
 list2 = getList("image.titles");
 
-// Renames all open images 
+// Renames all open images  
 for(i = 0; i<list2.length; i++){
 	if (i == 0) {
 		selectWindow(list2[i]);
@@ -399,11 +390,14 @@ for(i = 0; i<list2.length; i++){
 	}
 }
 
+// Checks if there is a minimum value below the inputed background threshold
 files = dir4+"Traction_PIV_"+img1Title+".txt";
- threshold(0, files, bgt);
+threshold(0, files, bgt);
 
-print("<> <> <> <> <> Program Completed <> <> <> <> <>");
-
+// Program complete message
+Dialog.create("Program Completed");
+Dialog.addMessage("                                                ");
+Dialog.show();
 
 }
 
@@ -469,7 +463,7 @@ function threshold(runNum, filepath, alpha){
 
 	if (assump == "Error"){
 		Dialog.create("Error");
-		Dialog.addMessage("There was no background noise below "+alpha+ "Pa on run: "+(runNum/2)+1);
+		Dialog.addMessage("There was no background noise below "+alpha+ "Pa on run "+(runNum/2)+1);
 		Dialog.show();
 	} else {
 		print("");
@@ -480,7 +474,7 @@ function threshold(runNum, filepath, alpha){
 // Calculates a default acceptable background threshold
 
 function calcThres(dir1, dir3, p1, p2, p3, sw1, sw2, sw3, noise, thres, p, po, y, r, aln){
-	
+	print("g");
 	if (dir1 == "none"){
 		
 	} else {
@@ -492,6 +486,7 @@ function calcThres(dir1, dir3, p1, p2, p3, sw1, sw2, sw3, noise, thres, p, po, y
 	open(dir1+imgList[1]);
 	convert();
 	} 
+	print("h");
 
 	run("Images to Stack", "name=tempStack");
 	run("Reverse");
@@ -514,7 +509,6 @@ function calcThres(dir1, dir3, p1, p2, p3, sw1, sw2, sw3, noise, thres, p, po, y
 	apple = split(filestring);
 	
 	low = round(apple[4]);
-	print("intial low: ");
 
 	for (i = 4; i<apple.length; i=i+5){
 		
@@ -522,7 +516,7 @@ function calcThres(dir1, dir3, p1, p2, p3, sw1, sw2, sw3, noise, thres, p, po, y
 			low = apple[i];
 		}
 	}
-	print("LOW: " + low);
+
 	val = round(low)*2+10;  
 	// very arbitrary 
 	
@@ -544,17 +538,17 @@ function align(type){
 }
 
 
-// 
+// Checks if two selected directories are the same
 function warningCheck(d1, d2){
-print("entered warning");
-if (d1 == d2){
+	print("entered warning");
+	if (d1 == d2){
 	
-	Dialog.create("Warning");
-	Dialog.addMessage("One of the selected directories is the same as image source directory");
-	arr0 = newArray("yes, continue", "no, halt the program");
-	Dialog.addChoice("Would you still like to continue?", arr0);
-	Dialog.show();
-	a = Dialog.getChoice();
+		Dialog.create("Warning");
+		Dialog.addMessage("One of the selected directories is the same as image source directory");
+		arr0 = newArray("yes, continue", "no, halt the program");
+		Dialog.addChoice("Would you still like to continue?", arr0);
+		Dialog.show();
+		a = Dialog.getChoice();
 	if (a == "no, halt the program"){
 		print("program halted");
 		exit();
