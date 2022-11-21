@@ -1,5 +1,5 @@
 Dialog.create("Analysis Mode");
-	Dialog.addMessage("How would you like to continue?")
+	Dialog.addMessage("Select image analysis mode")
 	arr0 = newArray("Batch Mode", "Single Pair of Images");
 	Dialog.addChoice("Mode: ", arr0);
 	Dialog.show();
@@ -84,6 +84,7 @@ Dialog.addNumber("Young's Modulus", y);
 Dialog.addNumber("Regularization Factor", r,10,11,"");
 Dialog.addMessage("__________________________");
 Dialog.addChoice("Alignment option: ", arr7);
+Dialog.addCheckbox("Perform minimum value check", false);
 Dialog.show();
 
 // Retrieves the user input from the dialog box and saves them to new variables
@@ -100,15 +101,20 @@ po = Dialog.getNumber();
 y = Dialog.getNumber();
 r = Dialog.getNumber();
 aln = Dialog.getChoice();
+chk = Dialog.getCheckbox();
 
+print("CHECK: " + chk);
 // Calculating the default threshold value based on user inputs
-bthres = calcThres(dir1, dir3, p1, p2, p3, sw1, sw2, sw3, noise, thres, p, po, y, r, aln);
 
-// Dialog box for user to enter a background threshold value
-Dialog.create("Background Threshold");
-Dialog.addNumber("Background threshold", bthres);
-Dialog.show();
-bgt = Dialog.getNumber();
+if (chk == 1) {
+	bthres = calcThres(dir1, dir3, p1, p2, p3, sw1, sw2, sw3, noise, thres, p, po, y, r, aln);
+
+	// Dialog box for user to enter a background threshold value
+	Dialog.create("Background Shift");
+	Dialog.addNumber("Minimum Background Cutoff (Pa)", bthres);
+	Dialog.show();
+	bgt = Dialog.getNumber();
+	} 
 
 // Enables ImageJ's batchmode
 setBatchMode(true);
@@ -188,10 +194,11 @@ for (j=0; j<imgList.length; j=j+2) {
 	}
 	close("*");	
 	
+	if (chk == 1){
 	// Checks if there is a minimum value below the inputed background threshold
 	name1 = dir3+"Traction_PIV_"+img1Title+".txt";
 	threshold(j, name1, bgt);
-	
+	}
 }
 
 setBatchMode(false); 
@@ -216,6 +223,7 @@ print("Program 2 starting...");
 // Closes all images 
 close("*");
 
+
 // Selects and opens first image
 file1 = File.openDialog("Select Fluorescent Bead Image (unstressed)");
 open(file1);
@@ -234,6 +242,7 @@ dir4 = getDirectory("Choose Text file Destination Directory");
 
 //Opens second image
 open(file2);
+
 
 // Setting initial values for the parameters
 p = "0.1606";
@@ -270,12 +279,13 @@ Dialog.addNumber("Noise: ", noise);
 Dialog.addNumber("Threshold: ",thres);
 Dialog.addMessage("__________________________");
 Dialog.addMessage("FTTC Parameters",16);
-Dialog.addNumber("Pixel size (" + fromCharCode(181) + "m)",p,5,5,"");
+Dialog.addNumber("Pixel Size (" + fromCharCode(181) + "m)",p,5,5,"");
 Dialog.addNumber("Poisson's Ratio: ", po);
 Dialog.addNumber("Young's Modulus", y);
 Dialog.addNumber("Regularization Factor", r,10,11,"");
 Dialog.addMessage("__________________________");
 Dialog.addChoice("Alignment option: ", arr7);
+Dialog.addNumber("Minimum Background Cutoff (Pa)",""); 
 Dialog.show();
 
 // Retrieves the user input from the dialog box and saves them to new variables
@@ -292,19 +302,11 @@ po = Dialog.getNumber();
 y = Dialog.getNumber();
 r = Dialog.getNumber();
 aln = Dialog.getChoice();
-
-// Calculating the default threshold value based on user inputs
-bthres = calcThres("none", dir4, p1, p2, p3, sw1, sw2, sw3, noise, thres, p, po, y, r, aln);
-
-// Dialog box for user to enter a background threshold value
-Dialog.create("Background Threshold");
-Dialog.addNumber("Background threshold (Pa)", bthres);
-Dialog.show();
 bgt = Dialog.getNumber();
 
 // Opens first two files
-open(file1);
-open(file2);
+//open(file1);
+//open(file2);
 
 // Creates a list containing both images
 list1 = getList("image.titles");
@@ -463,7 +465,7 @@ function threshold(runNum, filepath, alpha){
 
 	if (assump == "Error"){
 		Dialog.create("Error");
-		Dialog.addMessage("There was no background noise below "+alpha+ "Pa on run "+(runNum/2)+1);
+		Dialog.addMessage("There was no background values below "+alpha+ "Pa on run "+(runNum/2)+1);
 		Dialog.show();
 	} else {
 		print("");
@@ -530,10 +532,10 @@ function align(type){
 		print(aln);
 	} 
 	if (type == "Full image alignment"){
-		run("Align slices in stack...", "method=5 windowsizex="+a+" windowsizey="+a+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
+		run("Align slices in stack...", "method=5 windowsizex="+getWidth()+" windowsizey="+getWidth()+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
 	}
 	if (type == "Edge alignment"){
-		run("Align slices in stack...", "method=5 windowsizex="+floor(a/5)+" windowsizey="+a+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
+		run("Align slices in stack...", "method=5 windowsizex="+floor(getWidth()/5)+" windowsizey="+getWidth()+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
 	}
 }
 
