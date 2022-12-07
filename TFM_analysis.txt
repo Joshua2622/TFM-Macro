@@ -74,8 +74,8 @@ Dialog.addMessage("PIV 3");
 Dialog.addNumber("3rd Interrogation Window: ", fpiv/4);
 Dialog.addNumber("Search Window Size: ", fpiv/2);
 Dialog.addMessage("");
-Dialog.addNumber("Noise: ", noise);
-Dialog.addNumber("Threshold: ",thres);
+//Dialog.addNumber("Noise: ", noise); NOT WORKING
+//Dialog.addNumber("Threshold: ",thres); NOT WORKING
 Dialog.addMessage("__________________________");
 Dialog.addMessage("FTTC Parameters",16);
 Dialog.addNumber("Pixel size (" + fromCharCode(181) + "m)",p,5,5,"");
@@ -84,7 +84,7 @@ Dialog.addNumber("Young's Modulus", y);
 Dialog.addNumber("Regularization Factor", r,10,11,"");
 Dialog.addMessage("__________________________");
 Dialog.addChoice("Alignment option: ", arr7);
-Dialog.addCheckbox("Perform minimum value check", false);
+//Dialog.addCheckbox("Perform minimum value check", false);
 Dialog.show();
 
 // Retrieves the user input from the dialog box and saves them to new variables
@@ -94,16 +94,18 @@ p2 = Dialog.getNumber();
 sw2 = Dialog.getNumber();
 p3 = Dialog.getNumber();
 sw3 = Dialog.getNumber();
-noise = Dialog.getNumber();
-thres = Dialog.getNumber();
+//noise = Dialog.getNumber(); NOT WORKING
+//thres = Dialog.getNumber(); NOT WORKING
 p = Dialog.getNumber();
 po = Dialog.getNumber();
 y = Dialog.getNumber();
 r = Dialog.getNumber();
 aln = Dialog.getChoice();
-chk = Dialog.getCheckbox();
+//chk = Dialog.getCheckbox();
 
-print("CHECK: " + chk);
+//print("CHECK: " + chk);
+chk = 0; // remove line for calcThres to work
+
 // Calculating the default threshold value based on user inputs
 
 if (chk == 1) {
@@ -205,7 +207,7 @@ setBatchMode(false);
 
 // Program complete message
 Dialog.create("Program Completed");
-Dialog.addMessage("                                                      ");
+Dialog.addMessage(" All images and text files have been saved ");
 Dialog.show();
 }
 }
@@ -275,8 +277,8 @@ Dialog.addMessage("PIV 3");
 Dialog.addNumber("3rd Interrogation Window: ", fpiv/4);
 Dialog.addNumber("Search Window Size: ", fpiv/2);
 Dialog.addMessage("");
-Dialog.addNumber("Noise: ", noise);
-Dialog.addNumber("Threshold: ",thres);
+//Dialog.addNumber("Noise: ", noise);  NOT WORKING
+//Dialog.addNumber("Threshold: ",thres); NOT WORKING
 Dialog.addMessage("__________________________");
 Dialog.addMessage("FTTC Parameters",16);
 Dialog.addNumber("Pixel Size (" + fromCharCode(181) + "m)",p,5,5,"");
@@ -285,7 +287,7 @@ Dialog.addNumber("Young's Modulus", y);
 Dialog.addNumber("Regularization Factor", r,10,11,"");
 Dialog.addMessage("__________________________");
 Dialog.addChoice("Alignment option: ", arr7);
-Dialog.addNumber("Minimum Background Cutoff (Pa)",""); 
+//Dialog.addNumber("Minimum Background Cutoff (Pa)",""); UNSURE IF WORKING
 Dialog.show();
 
 // Retrieves the user input from the dialog box and saves them to new variables
@@ -295,14 +297,14 @@ p2 = Dialog.getNumber();
 sw2 = Dialog.getNumber();
 p3 = Dialog.getNumber();
 sw3 = Dialog.getNumber();
-noise = Dialog.getNumber();
-thres = Dialog.getNumber();
+//noise = Dialog.getNumber(); NOT WORKING
+//thres = Dialog.getNumber(); NOT WORKING
 p = Dialog.getNumber();
 po = Dialog.getNumber();
 y = Dialog.getNumber();
 r = Dialog.getNumber();
 aln = Dialog.getChoice();
-bgt = Dialog.getNumber();
+//bgt = Dialog.getNumber(); UNSURE IF WORKING
 
 // Opens first two files
 //open(file1);
@@ -336,7 +338,7 @@ for(i=0; i<list1.length; i++){
 run("Images to Stack", "name=&s_name");
 
 // Reverses the images so they are in the correct order for the analysis
-run("Reverse");
+//run("Reverse");
 
 // Runs the align function based on the user input
 align(aln);
@@ -394,11 +396,12 @@ for(i = 0; i<list2.length; i++){
 
 // Checks if there is a minimum value below the inputed background threshold
 files = dir4+"Traction_PIV_"+img1Title+".txt";
-threshold(0, files, bgt);
+
+//threshold(0, files, bgt); uncomment to allow threshold to work
 
 // Program complete message
 Dialog.create("Program Completed");
-Dialog.addMessage("                                                ");
+Dialog.addMessage(" All generated images are open and text files have been saved ");
 Dialog.show();
 
 }
@@ -559,4 +562,6 @@ function warningCheck(d1, d2){
 }
 
 }
+
+// ADD OPTION TO REVERSE FILES (if their images of dead/live are in the wrong order)
 
