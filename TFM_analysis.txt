@@ -102,7 +102,7 @@ y = Dialog.getNumber();
 r = Dialog.getNumber();
 aln = Dialog.getChoice();
 //chk = Dialog.getCheckbox();
-r
+
 //print("CHECK: " + chk);
 chk = 0; // remove line for calcThres to work
 
