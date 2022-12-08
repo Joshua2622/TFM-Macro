@@ -1,6 +1,6 @@
 Dialog.create("Analysis Mode");
 	Dialog.addMessage("Select image analysis mode")
-	arr0 = newArray("Batch Mode", "Single Pair of Images");
+	arr0 = newArray("Batch Mode", "Single Run Mode");
 	Dialog.addChoice("Mode: ", arr0);
 	Dialog.show();
 	a = Dialog.getChoice();
@@ -102,7 +102,7 @@ y = Dialog.getNumber();
 r = Dialog.getNumber();
 aln = Dialog.getChoice();
 //chk = Dialog.getCheckbox();
-
+r
 //print("CHECK: " + chk);
 chk = 0; // remove line for calcThres to work
 
