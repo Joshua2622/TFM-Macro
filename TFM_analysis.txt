@@ -57,7 +57,7 @@ fpiv = calcpiv(getWidth(),getHeight());
 close();
 
 // Array containing alignment options
-arr7 = newArray("No alignment", "Full image alignment", "Edge alignment");
+arr7 = newArray("No alignment", "Central alignment", "Edge alignment");
 
 // Creates and sets up dialog box for the analysis setup
 Dialog.create("Analysis Setup");
@@ -78,13 +78,12 @@ Dialog.addMessage("");
 //Dialog.addNumber("Threshold: ",thres); NOT WORKING
 Dialog.addMessage("__________________________");
 Dialog.addMessage("FTTC Parameters",16);
-Dialog.addNumber("Pixel size (" + fromCharCode(181) + "m)",p,5,5,"");
+Dialog.addNumber("Pixel size (" + fromCharCode(181) + "m):",p,5,5,"");
 Dialog.addNumber("Poisson's Ratio: ", po);
-Dialog.addNumber("Young's Modulus", y);
-Dialog.addNumber("Regularization Factor", r,10,11,"");
+Dialog.addNumber("Young's Modulus:", y);
+Dialog.addNumber("Regularization Factor:", r,10,11,"");
 Dialog.addMessage("__________________________");
 Dialog.addChoice("Alignment option: ", arr7);
-//Dialog.addCheckbox("Perform minimum value check", false);
 Dialog.show();
 
 // Retrieves the user input from the dialog box and saves them to new variables
@@ -94,29 +93,12 @@ p2 = Dialog.getNumber();
 sw2 = Dialog.getNumber();
 p3 = Dialog.getNumber();
 sw3 = Dialog.getNumber();
-//noise = Dialog.getNumber(); NOT WORKING
-//thres = Dialog.getNumber(); NOT WORKING
 p = Dialog.getNumber();
 po = Dialog.getNumber();
 y = Dialog.getNumber();
 r = Dialog.getNumber();
 aln = Dialog.getChoice();
-//chk = Dialog.getCheckbox();
-
-//print("CHECK: " + chk);
-chk = 0; // remove line for calcThres to work
-
-// Calculating the default threshold value based on user inputs
-
-if (chk == 1) {
-	bthres = calcThres(dir1, dir3, p1, p2, p3, sw1, sw2, sw3, noise, thres, p, po, y, r, aln);
-
-	// Dialog box for user to enter a background threshold value
-	Dialog.create("Background Shift");
-	Dialog.addNumber("Minimum Background Cutoff (Pa)", bthres);
-	Dialog.show();
-	bgt = Dialog.getNumber();
-	} 
+print("Alignment: " + aln);
 
 // Enables ImageJ's batchmode
 setBatchMode(true);
@@ -196,11 +178,6 @@ for (j=0; j<imgList.length; j=j+2) {
 	}
 	close("*");	
 	
-	if (chk == 1){
-	// Checks if there is a minimum value below the inputed background threshold
-	name1 = dir3+"Traction_PIV_"+img1Title+".txt";
-	threshold(j, name1, bgt);
-	}
 }
 
 setBatchMode(false); 
@@ -260,7 +237,7 @@ bthres = 20;
 s_name = substring(getTitle,0,lengthOf(getTitle)-4);
 
 // Array containing alignment options
-arr7 = newArray("No alignment", "Full image alignment", "Edge image alignment");
+arr7 = newArray("No alignment", "Central alignment", "Edge image alignment");
 
 // Creates and sets up dialog box for the analysis setup
 Dialog.create("Analysis Setup");
@@ -277,8 +254,6 @@ Dialog.addMessage("PIV 3");
 Dialog.addNumber("3rd Interrogation Window: ", fpiv/4);
 Dialog.addNumber("Search Window Size: ", fpiv/2);
 Dialog.addMessage("");
-//Dialog.addNumber("Noise: ", noise);  NOT WORKING
-//Dialog.addNumber("Threshold: ",thres); NOT WORKING
 Dialog.addMessage("__________________________");
 Dialog.addMessage("FTTC Parameters",16);
 Dialog.addNumber("Pixel Size (" + fromCharCode(181) + "m)",p,5,5,"");
@@ -287,7 +262,6 @@ Dialog.addNumber("Young's Modulus", y);
 Dialog.addNumber("Regularization Factor", r,10,11,"");
 Dialog.addMessage("__________________________");
 Dialog.addChoice("Alignment option: ", arr7);
-//Dialog.addNumber("Minimum Background Cutoff (Pa)",""); UNSURE IF WORKING
 Dialog.show();
 
 // Retrieves the user input from the dialog box and saves them to new variables
@@ -297,14 +271,13 @@ p2 = Dialog.getNumber();
 sw2 = Dialog.getNumber();
 p3 = Dialog.getNumber();
 sw3 = Dialog.getNumber();
-//noise = Dialog.getNumber(); NOT WORKING
-//thres = Dialog.getNumber(); NOT WORKING
+
 p = Dialog.getNumber();
 po = Dialog.getNumber();
 y = Dialog.getNumber();
 r = Dialog.getNumber();
 aln = Dialog.getChoice();
-//bgt = Dialog.getNumber(); UNSURE IF WORKING
+print("Alignment: "+aln);
 
 // Opens first two files
 //open(file1);
@@ -456,12 +429,12 @@ function calcpiv(w,h){
 function threshold(runNum, filepath, alpha){
 	
 	filestring = File.openAsString(filepath);
-	apple = split(filestring);
+	splitString= split(filestring);
 
 	assump = "Error"; 
 
-	for (i = 4; i<apple.length; i=i+5){
-		if(round(apple[i]) <= alpha) {
+	for (i = 4; i<splitString.length; i=i+5){
+		if(round(splitString[i]) <= alpha) {
 			assump = "No Error";
 		} 
 	}
@@ -476,69 +449,20 @@ function threshold(runNum, filepath, alpha){
 
 }
 
-// Calculates a default acceptable background threshold
-
-function calcThres(dir1, dir3, p1, p2, p3, sw1, sw2, sw3, noise, thres, p, po, y, r, aln){
-	print("g");
-	if (dir1 == "none"){
-		
-	} else {
-	close("*");
-	open(dir1+imgList[0]);
-	img1Title = substring(getTitle,0,lengthOf(getTitle)-4);
-	convert();
-
-	open(dir1+imgList[1]);
-	convert();
-	} 
-	print("h");
-
-	run("Images to Stack", "name=tempStack");
-	run("Reverse");
-	
-	a = getWidth();
-	align(aln);	
-
-	file_loc = dir3+"PIV_"+img1Title+".txt";
-	run("iterative PIV(Basic)...", "piv1=&p1 sw1=&sw1 piv2=&p2 sw2=&sw2 piv3=&p3 sw3=&sw3 what=[Accept this PIV and output] noise=&noise threshold=&thres c1=3 c2=1 save=&file_loc");
-	close("*");	
-
-	FTTC_path = dir3+"PIV_"+img1Title+".txt";
-	run("FTTC ", "pixel=&p poisson=&po young's=&y regularization=&r plot plot=1000 plot=1000 select=&FTTC_path");
-
-	close("*");
-	
-	filepath = dir3+"Traction_PIV_"+img1Title+".txt";
-	
-	filestring = File.openAsString(filepath);
-	apple = split(filestring);
-	
-	low = round(apple[4]);
-
-	for (i = 4; i<apple.length; i=i+5){
-		
-		if (round(apple[4]) > round(apple[i])){
-			low = apple[i];
-		}
-	}
-
-	val = round(low)*2+10;  
-	// very arbitrary 
-	
-	return val;
-}
-
 // Alignment function
 function align(type){
-
+	run("8-bit");
 	if (type == "No alignment") {
 		print(aln);
 	} 
-	if (type == "Full image alignment"){
-		run("Align slices in stack...", "method=5 windowsizex="+getWidth()+" windowsizey="+getWidth()+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
+	if (type == "Central alignment"){
+		run("Align slices in stack...", "method=5 windowsizex="+getWidth() - (getWidth()/2)+" windowsizey="+getHeight() - (getHeight()/2)+" x0="+getWidth()/4+" y0="+getWidth()/4+" swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
+
+		print("Type 1");
 	}
 	if (type == "Edge alignment"){
 		run("Align slices in stack...", "method=5 windowsizex="+floor(getWidth()/5)+" windowsizey="+getWidth()+" x0=0 y0=0 swindow=0 subpixel=false itpmethod=0 ref.slice=1 show=true");
+		print("Type 2");
 	}
 }
 
@@ -562,6 +486,4 @@ function warningCheck(d1, d2){
 }
 
 }
-
-// ADD OPTION TO REVERSE FILES (if their images of dead/live are in the wrong order)
 
